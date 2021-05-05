@@ -1,0 +1,8 @@
+deps:
+  zgl:
+    src:
+      github:
+        user: ziglibs
+        repo: zgl
+        ref: master
+    root: zgl.zig
