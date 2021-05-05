@@ -72,7 +72,7 @@ pub fn main() !u8 {
   var r1 = zargo.Rectangle{.x = @divTrunc(iw, 4) - 50,     .y = @divTrunc(ih, 4) - 50,     .width = 100, .height = 100};
   var r2 = zargo.Rectangle{.x = @divTrunc(iw * 3, 4) - 50, .y = @divTrunc(ih * 3, 4) - 50, .width = 100, .height = 100};
   while (c.glfwWindowShouldClose(window) == c.GL_FALSE) {
-    e.clear();
+    e.clear([_]u8{0,0,0,255});
     e.fillRect(r1, [_]u8{255,0,0,255}, true);
     e.fillUnit(r2.transformation().rotate(angle), [_]u8{0,255,0,255}, true);
     tex.drawAll(&e, tex.area().move(500, 400), 255);

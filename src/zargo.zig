@@ -407,7 +407,7 @@ pub const Engine = struct {
   max_tex_size: i32,
   single_value_color: gl.PixelFormat,
 
-  fn debugCallback(e: *Engine, source: gl.DebugSource,
+  fn debugCallback(e: *const Engine, source: gl.DebugSource,
       msg_type: gl.DebugMessageType, id: usize, severity: gl.DebugSeverity,
       message: []const u8) void {
     // TODO
@@ -437,7 +437,7 @@ pub const Engine = struct {
         return EngineError.NoDebugAvailable;
       }
       gl.enable(gl.Capabilities.debug_output);
-      gl.debugMessageCallback(debugCallback, null);
+      gl.debugMessageCallback(e, debugCallback);
     }
 
     const vertices = [_]f32{0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0};
@@ -496,7 +496,8 @@ pub const Engine = struct {
 
   /// clear clears the current framebuffer to be of the given color.
   pub fn clear(e: *Engine, color: [4]u8) void {
-    gl.clearColor(color[0], color[1], color[2], color[3]);
+    gl.clearColor(@intToFloat(f32, color[0])/255.0, @intToFloat(f32, color[1])/255.0,
+        @intToFloat(f32, color[2])/255.0, @intToFloat(f32, color[3])/255.0);
     gl.clear(.{.color = true});
   }
 
