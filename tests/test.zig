@@ -65,6 +65,7 @@ pub fn main() !u8 {
   std.debug.print("loaded texture: w = {}, h = {}, alpha= {}\n", .{tex.width, tex.height, tex.has_alpha});
 
   var angle: f32 = 0;
+  var iangle: f32 = 0;
 
   var iw = @intCast(i32, w);
   var ih = @intCast(i32, h);
@@ -75,8 +76,10 @@ pub fn main() !u8 {
     e.clear([_]u8{0,0,0,255});
     e.fillRect(r1, [_]u8{255,0,0,255}, true);
     e.fillUnit(r2.transformation().rotate(angle), [_]u8{0,255,0,255}, true);
-    tex.drawAll(&e, tex.area().move(500, 400), 255);
+    e.drawImage(tex, tex.area().move(500, 400).transformation(),
+      zargo.Transform.identity().rotate(iangle).compose(tex.area().transformation()), 255);
     angle = @rem((angle + 0.01), 2*3.14159);
+    iangle = @rem((iangle + 0.001), 2*3.14159);
 
     c.glfwSwapBuffers(window);
     c.glfwPollEvents();

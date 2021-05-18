@@ -171,9 +171,7 @@ pub const Image = struct {
   /// 0 being fully transparent (i.e. invisible).
   /// alpha is applied on top of the image's alpha channel, if it has one.
   pub fn draw(i: Image, e: *Engine, dst_area: Rectangle, src_area: Rectangle, alpha: u8) void {
-    var src_transform = Transform.identity().scale(@intToFloat(f32, i.width), @intToFloat(f32, i.height)).compose(
-        src_area.transformation()).scale(1.0/@intToFloat(f32, i.width), 1.0/@intToFloat(f32, i.height));
-    e.drawImage(i, dst_area.transformation(), src_transform, alpha);
+    e.drawImage(i, dst_area.transformation(), src_area.transformation(), alpha);
   }
 
   /// drawAll is a convenience function that calls draw with i.area() as the
@@ -358,15 +356,21 @@ fn Shaders(backend: Backend) type {
 
     fn img(comptime kind: ShaderKind) []const u8 {
       return switch(kind) {
-        .vertex => versionDef() ++ uniform("vec2 u_transform[3]")
-            ++ attr("vec2 a_position") ++ varyOut("vec2 v_texCoord") ++
+        .vertex => versionDef()
+            ++ uniform("vec2 u_src_transform[3]")
+            ++ uniform("vec2 u_dst_transform[3]")
+            ++ attr("vec2 a_position")
+            ++ varyOut("vec2 v_texCoord") ++
             \\ void main() {
             \\   gl_Position = vec4(
-            \\     u_transform[0].x * a_position.x + u_transform[1].x * a_position.y + u_transform[2].x,
-            \\     u_transform[0].y * a_position.x + u_transform[1].y * a_position.y + u_transform[2].y,
+            \\     u_dst_transform[0].x * a_position.x + u_dst_transform[1].x * a_position.y + u_dst_transform[2].x,
+            \\     u_dst_transform[0].y * a_position.x + u_dst_transform[1].y * a_position.y + u_dst_transform[2].y,
             \\     0, 1
             \\   );
-            \\   v_texCoord = vec2(a_position.x, 1.0-a_position.y);
+            \\   v_texCoord = vec2(
+            \\     u_src_transform[0].x * a_position.x + u_src_transform[1].x * a_position.y + u_src_transform[2].x,
+            \\     u_src_transform[0].y * a_position.x + u_src_transform[1].y * a_position.y + u_src_transform[2].y
+            \\   );
             \\ }
             ,
         .fragment => versionDef() ++ precision("mediump float")
@@ -392,7 +396,8 @@ pub const Engine = struct {
   },
   img_proc: struct {
     p: gl.Program,
-    transform: u32,
+    src_transform: u32,
+    dst_transform: u32,
     position: u32,
     texture: u32,
     alpha: u32
@@ -473,7 +478,8 @@ pub const Engine = struct {
     errdefer gl.deleteProgram(img_proc);
     e.img_proc = .{
       .p = img_proc,
-      .transform = try getUniformLocation(img_proc, "u_transform"),
+      .src_transform = try getUniformLocation(img_proc, "u_src_transform"),
+      .dst_transform = try getUniformLocation(img_proc, "u_dst_transform"),
       .position = try getAttribLocation(img_proc, "a_position"),
       .texture = try getUniformLocation(img_proc, "s_texture"),
       .alpha = try getUniformLocation(img_proc, "u_alpha")
@@ -604,8 +610,14 @@ pub const Engine = struct {
     gl.uniform1i(e.img_proc.texture, 0);
     gl.uniform1f(e.img_proc.alpha, @intToFloat(f32, alpha)/255.0);
 
-    var it = e.toInternalCoords(dst_transform, false);
-    gl.uniform2fv(e.img_proc.transform, &it.m);
+    const ist = Transform.identity().scale(
+      1.0 / @intToFloat(f32, i.width), -1.0 / @intToFloat(f32, i.height)
+    ).compose(src_transform).translate(-0.5, -0.5);
+    //e.toInternalCoords(src_transform, false);
+    gl.uniform2fv(e.img_proc.src_transform, &ist.m);
+
+    const idt = e.toInternalCoords(dst_transform, false);
+    gl.uniform2fv(e.img_proc.dst_transform, &idt.m);
 
     gl.drawArrays(gl.PrimitiveType.triangle_fan, 0, 4);
 
