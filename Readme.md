@@ -31,6 +31,12 @@ libraries like GLFW or SDL to do that. Be sure to tell the library to construct
 the same version of the OpenGL context that you instruct the engine to use as
 backend!
 
+## Building
+
+Zargo depends on [libepoxy](https://github.com/anholt/libepoxy) via [zgl](https://github.com/ziglibs/zgl).
+
+When building for Windows with GNU (i.e. MinGW) ABI, mind that you need to rename `libepoxy.dll.a` to `epoxy.lib` ([see here](https://github.com/ziglang/zig/issues/7799#issuecomment-761849308)).
+
 ## license
 
 MIT
