@@ -3,11 +3,16 @@ const builtin = @import("builtin");
 const Builder = std.build.Builder;
 const pkgs = @import("deps.zig").pkgs;
 
+const Artifacts = enum {
+  library, tests, all
+};
+
 const Context = struct {
   library_path: ?[]const u8,
   include_path: ?[]const u8,
   mode: builtin.Mode,
   target: std.zig.CrossTarget,
+  artifacts: Artifacts,
 
   fn addDeps(self: Context, s: *std.build.LibExeObjStep) void {
     s.setBuildMode(self.mode);
@@ -46,25 +51,31 @@ pub fn build(b: *Builder) void {
     .mode = b.standardReleaseOptions(),
     .target = b.standardTargetOptions(.{}),
     .library_path = b.option([]const u8, "library_path", "search path for libraries"),
-    .include_path = b.option([]const u8, "include_path", "include path for headers")
+    .include_path = b.option([]const u8, "include_path", "include path for headers"),
+    .artifacts = b.option(Artifacts, "artifacts", "`library`, `tests`, or `all`") orelse .all,
   };
 
-  const lib = b.addStaticLibrary("zargo", "src/libzargo.zig");
-  context.addDeps(lib);
-  pkgs.addAllTo(lib);
-  lib.install();
-
-  const exe = b.addExecutable("test", "tests/test.zig");
-  context.addDeps(exe);
-  if (std.Target.current.os.tag == .windows) {
-    exe.linkSystemLibrary("glfw3");
-  } else {
-    exe.linkSystemLibrary("glfw");
+  if (context.artifacts != .tests) {
+    const lib = b.addStaticLibrary("zargo", "src/libzargo.zig");
+    context.addDeps(lib);
+    pkgs.addAllTo(lib);
+    lib.install();
   }
-  exe.addPackage(.{
-    .name = "zargo",
-    .path = "src/zargo.zig",
-    .dependencies = &.{pkgs.zgl}
-  });
-  exe.install();
+
+  if (context.artifacts != .library) {
+    const exe = b.addExecutable("test", "tests/test.zig");
+    context.addDeps(exe);
+    if (std.Target.current.os.tag == .windows) {
+      exe.linkSystemLibrary("glfw3");
+    } else {
+      exe.linkSystemLibrary("glfw");
+    }
+    exe.addPackage(.{
+      .name = "zargo",
+      .path = "src/zargo.zig",
+      .dependencies = &.{pkgs.zgl}
+    });
+    exe.strip = true;
+    exe.install();
+  }
 }

@@ -70,8 +70,21 @@ pub fn main() !u8 {
   var iw = @intCast(i32, w);
   var ih = @intCast(i32, h);
 
+  var painted = zargo.Image.empty();
+  {
+    var canvas = e.createCanvas(200, 200, false) catch unreachable;
+    defer canvas.close();
+    var area = canvas.rectangle();
+    e.fillRect(area.position(100, 100, .left, .top), [_]u8{255,0,0,255}, true);
+    e.fillRect(area.position(100, 100, .right, .top), [_]u8{255,255,0,255}, true);
+    e.fillRect(area.position(100, 100, .left, .bottom), [_]u8{0,0,255,255}, true);
+    e.fillRect(area.position(100, 100, .right, .bottom), [_]u8{0,255,0,255}, true);
+    painted = canvas.finish() catch unreachable;
+  }
+
   var r1 = zargo.Rectangle{.x = @divTrunc(iw, 4) - 50,     .y = @divTrunc(ih, 4) - 50,     .width = 100, .height = 100};
   var r2 = zargo.Rectangle{.x = @divTrunc(iw * 3, 4) - 50, .y = @divTrunc(ih * 3, 4) - 50, .width = 100, .height = 100};
+
   while (c.glfwWindowShouldClose(window) == c.GL_FALSE) {
     e.clear([_]u8{0,0,0,255});
     e.fillRect(r1, [_]u8{255,0,0,255}, true);
@@ -80,6 +93,8 @@ pub fn main() !u8 {
       zargo.Transform.identity().rotate(iangle).compose(tex.area().transformation()), 255);
     angle = @rem((angle + 0.01), 2*3.14159);
     iangle = @rem((iangle + 0.001), 2*3.14159);
+
+    if (!painted.isEmpty()) painted.drawAll(&e, painted.area(), 255);
 
     c.glfwSwapBuffers(window);
     c.glfwPollEvents();
