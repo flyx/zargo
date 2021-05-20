@@ -19,15 +19,6 @@ fn keyCallback(win: ?*c.GLFWwindow, key: c_int, scancode: c_int, action: c_int, 
   }
 }
 
-pub fn testOpenFile(allocator: *std.mem.Allocator, file_path: []const u8) !std.fs.File {
-  const cwd = std.fs.cwd();
-
-  var resolved_path = try std.fs.path.resolve(allocator, &[_][]const u8{file_path});
-  defer allocator.free(resolved_path);
-
-  return cwd.openFile(resolved_path, .{});
-}
-
 pub fn main() !u8 {
   _ = c.glfwSetErrorCallback(errorCallback);
 

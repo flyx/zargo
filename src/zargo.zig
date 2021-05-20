@@ -91,11 +91,11 @@ pub const Rectangle = struct {
     return Rectangle{.x = r.x + @divTrunc(dw, 2), .y = r.y + @divTrunc(dh, 2), .width = @intCast(u31, r.width - dw), .height = @intCast(u31, r.height - dh)};
   }
 
-  /// scale will scale the rectangle by the given factor.
-  pub fn scale(r: Rectangle, factor: f32) Rectangle {
+  /// scale will scale the rectangle by the given factors.
+  pub fn scale(r: Rectangle, factorX: f32, factorY: f32) Rectangle {
     var ret = Rectangle{.x = undefined, .y = undefined,
-      .width = @floatToInt(u31, @intToFloat(f32, r.width) * factor),
-      .height = @floatToInt(u31, @intToFloat(f32, r.height) * factor)};
+      .width = @floatToInt(u31, @intToFloat(f32, r.width) * factorX),
+      .height = @floatToInt(u31, @intToFloat(f32, r.height) * factorY)};
     ret.x = r.x + @divTrunc(r.width - ret.width, 2);
     ret.y = r.y + @divTrunc(r.height - ret.height, 2);
     return ret;

@@ -107,8 +107,8 @@ export fn zargo_rectangle_grow(r: CRectangle, dw: i32, dh: i32) CRectangle {
   return CRectangle.to(CRectangle.from(r).grow(dw, dh));
 }
 
-export fn zargo_rectangle_scale(r: CRectangle, factor: f32) CRectangle {
-  return CRectangle.to(CRectangle.from(r).scale(factor));
+export fn zargo_rectangle_scale(r: CRectangle, factorX: f32, factorY: f32) CRectangle {
+  return CRectangle.to(CRectangle.from(r).scale(factorX, factorY));
 }
 
 export fn zargo_rectangle_position(r: CRectangle, width: u32, height: u32, horiz: zargo.Rectangle.HAlign, vert: zargo.Rectangle.VAlign) CRectangle {
@@ -133,7 +133,7 @@ export fn zargo_image_draw(i: zargo.Image, e: ?*zargo.Engine, dst_area: CRectang
   } else unreachable;
 }
 
-export fn drawAll(i: zargo.Image, e: ?*zargo.Engine, dst_area: CRectangle, alpha: u8) void {
+export fn zargo_image_draw_all(i: zargo.Image, e: ?*zargo.Engine, dst_area: CRectangle, alpha: u8) void {
   if (e) |engine| {
     i.drawAll(engine, CRectangle.from(dst_area), alpha);
   } else unreachable;

@@ -78,4 +78,19 @@ pub fn build(b: *Builder) void {
     exe.strip = true;
     exe.install();
   }
+  if (context.artifacts == .all) {
+    const cexe = b.addExecutable("ctest", null);
+    context.addDeps(cexe);
+    cexe.addIncludeDir("include");
+    cexe.addCSourceFile("tests/test.c", &[_][]const u8{"-std=c99"});
+    if (std.Target.current.os.tag == .windows) {
+      cexe.linkSystemLibrary("glfw3");
+    } else {
+      cexe.linkSystemLibrary("glfw");
+    }
+
+    cexe.addLibPath("zig-out/lib");
+    cexe.linkSystemLibrary("zargo.a");
+    cexe.install();
+  }
 }
