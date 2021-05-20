@@ -88,9 +88,7 @@ pub fn build(b: *Builder) void {
     } else {
       cexe.linkSystemLibrary("glfw");
     }
-
-    cexe.addLibPath("zig-out/lib");
-    cexe.linkSystemLibrary("zargo.a");
+    cexe.addObjectFile("zig-out/lib/libzargo.a");
     cexe.install();
   }
 }
