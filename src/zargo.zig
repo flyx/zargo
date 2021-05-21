@@ -15,11 +15,11 @@ pub const Transform = extern struct {
 
   /// translate adds translation to the given matrix according to the given x
   /// and y values.
-  pub fn translate(t: Transform, x: f32, y: f32) Transform {
+  pub fn translate(t: Transform, dx: f32, dy: f32) Transform {
     return Transform{.m = .{
         t.m[0], t.m[1], .{
-          t.m[0][0]*x + t.m[1][0]*y + t.m[2][0],
-          t.m[0][1]*x + t.m[1][1]*y + t.m[2][1]
+          t.m[0][0]*dx + t.m[1][0]*dy + t.m[2][0],
+          t.m[0][1]*dx + t.m[1][1]*dy + t.m[2][1]
         }
     }};
   }
@@ -496,15 +496,15 @@ fn genShaders(comptime backend: Backend) Shaders {
 /// Giving debug=true will enable debug output, you should have created a
 /// debugging context for that. Non-debugging contexts are allowed not to
 /// provide any debugging output.
-pub const Engine = extern struct {
+pub const Engine = struct {
   backend: Backend,
-  rect_proc: extern struct {
+  rect_proc: struct {
     p: gl.Program,
     transform: u32,
     position: u32,
     color: u32
   },
-  img_proc: extern struct {
+  img_proc: struct {
     p: gl.Program,
     src_transform: u32,
     dst_transform: u32,
@@ -512,10 +512,10 @@ pub const Engine = extern struct {
     texture: u32,
     alpha: u32
   },
-  window: extern struct {
+  window: struct {
     width: u32, height: u32,
   },
-  target_framebuffer: extern struct {
+  target_framebuffer: struct {
     width: u32, height: u32,
   },
   view_transform: Transform,
@@ -621,6 +621,10 @@ pub const Engine = extern struct {
     }
     e.view_transform = Transform.identity().translate(-1.0, -1.0).scale(
       2.0 / @intToFloat(f32, width), 2.0 / @intToFloat(f32, height));
+  }
+
+  pub fn area(e: *Self) Rectangle {
+    return Rectangle{.x = 0, .y = 0, .width = @intCast(u31, e.window.width), .height = @intCast(u31, e.window.height)};
   }
 
   /// clear clears the current framebuffer to be of the given color.

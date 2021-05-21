@@ -72,79 +72,79 @@ ZARGO_DECLARE(void)
 zargo_engine_set_window_size(zargo_Engine e, uint32_t width, uint32_t height);
 
 ZARGO_DECLARE(void)
+zargo_engine_area(zargo_Engine e, zargo_Rectangle *r);
+
+ZARGO_DECLARE(void)
 zargo_engine_clear(zargo_Engine e, uint8_t color[4]);
 
 ZARGO_DECLARE(void)
 zargo_engine_close(zargo_Engine e);
 
 ZARGO_DECLARE(void)
-zargo_engine_fill_unit(zargo_Engine e, zargo_Transform t, uint8_t color[4], bool copy_alpha);
+zargo_engine_fill_unit(zargo_Engine e, zargo_Transform *t, uint8_t color[4], bool copy_alpha);
 
 ZARGO_DECLARE(void)
-zargo_engine_fill_rect(zargo_Engine e, zargo_Rectangle r, uint8_t color[4], bool copy_alpha);
-
-ZARGO_DECLARE(zargo_Image)
-zargo_engine_load_image(zargo_Engine e, const char *path);
+zargo_engine_fill_rect(zargo_Engine e, zargo_Rectangle *r, uint8_t color[4], bool copy_alpha);
 
 ZARGO_DECLARE(void)
-zargo_engine_draw_image(zargo_Engine e, zargo_Image i, zargo_Transform dst_transform, zargo_Transform src_transform, uint8_t alpha);
+zargo_engine_load_image(zargo_Engine e, zargo_Image *i, const char *path);
 
-ZARGO_DECLARE(zargo_Transform)
-zargo_transform_identity();
+ZARGO_DECLARE(void)
+zargo_engine_draw_image(zargo_Engine e, zargo_Image *i, zargo_Transform *dst_transform, zargo_Transform *src_transform, uint8_t alpha);
 
-ZARGO_DECLARE(zargo_Transform)
-zargo_transform_translate(zargo_Transform t, float x, float y);
+ZARGO_DECLARE(void)
+zargo_transform_identity(zargo_Transform *t);
 
-ZARGO_DECLARE(zargo_Transform)
-zargo_transform_rotate(zargo_Transform t, float angle);
+ZARGO_DECLARE(void)
+zargo_transform_translate(zargo_Transform *in, zargo_Transform *out, float dx, float dy);
 
-ZARGO_DECLARE(zargo_Transform)
-zargo_transform_scale(zargo_Transform t, float x, float y);
+ZARGO_DECLARE(void)
+zargo_transform_rotate(zargo_Transform *in, zargo_Transform *out, float angle);
 
-ZARGO_DECLARE(zargo_Transform)
-zargo_transform_compose(zargo_Transform t1, zargo_Transform t2);
+ZARGO_DECLARE(void)
+zargo_transform_scale(zargo_Transform *in, zargo_Transform *out, float x, float y);
 
-ZARGO_DECLARE(zargo_Transform)
-zargo_rectangle_translation(zargo_Rectangle r);
+ZARGO_DECLARE(void)
+zargo_transform_compose(zargo_Transform *l, zargo_Transform *r, zargo_Transform *out);
 
-ZARGO_DECLARE(zargo_Transform)
-zargo_rectangle_transformation(zargo_Rectangle r);
+ZARGO_DECLARE(void)
+zargo_rectangle_translation(zargo_Rectangle *in, zargo_Transform *out);
 
-ZARGO_DECLARE(zargo_Rectangle)
-zargo_rectangle_move(zargo_Rectangle r, int32_t dx, int32_t dy);
+ZARGO_DECLARE(void)
+zargo_rectangle_transformation(zargo_Rectangle *in, zargo_Transform *out);
 
-ZARGO_DECLARE(zargo_Rectangle)
-zargo_rectangle_grow(zargo_Rectangle r, int32_t dw, int32_t dh);
+ZARGO_DECLARE(void)
+zargo_rectangle_move(zargo_Rectangle *in, zargo_Rectangle *out, int32_t dx, int32_t dy);
 
-ZARGO_DECLARE(zargo_Rectangle)
-zargo_rectangle_scale(zargo_Rectangle r, float factorX, float factorY);
+ZARGO_DECLARE(void)
+zargo_rectangle_grow(zargo_Rectangle *in, zargo_Rectangle *out, int32_t dw, int32_t dh);
 
-ZARGO_DECLARE(zargo_Rectangle)
-zargo_rectangle_position(zargo_Rectangle r, uint32_t width, uint32_t height, int halign, int valign);
+ZARGO_DECLARE(void)
+zargo_rectangle_scale(zargo_Rectangle *in, zargo_Rectangle *out, float factorX, float factorY);
 
-ZARGO_DECLARE(zargo_Image)
-zargo_image_empty();
+ZARGO_DECLARE(void)
+zargo_rectangle_position(zargo_Rectangle *in, zargo_Rectangle *out, uint32_t width, uint32_t height, int halign, int valign);
+
+ZARGO_DECLARE(void)
+zargo_image_empty(zargo_Image *i);
 
 ZARGO_DECLARE(bool)
-zargo_image_is_empty(zargo_Image i);
-
-ZARGO_DECLARE(zargo_Rectangle)
-zargo_image_area(zargo_Image i);
+zargo_image_is_empty(zargo_Image *i);
 
 ZARGO_DECLARE(void)
-zargo_image_draw(zargo_Image i, zargo_Engine e, zargo_Rectangle dst_area, zargo_Rectangle src_area, uint8_t alpha);
+zargo_image_area(zargo_Image *in, zargo_Rectangle *out);
 
 ZARGO_DECLARE(void)
-zargo_image_draw_all(zargo_Image i, zargo_Engine e, zargo_Rectangle dst_area, uint8_t alpha);
+zargo_image_draw(zargo_Image *i, zargo_Engine e, zargo_Rectangle *dst_area, zargo_Rectangle *src_area, uint8_t alpha);
 
-ZARGO_DECLARE(zargo_Canvas)
-zargo_canvas_create(zargo_Engine e, size_t width, size_t height, bool with_alpha);
+ZARGO_DECLARE(void)
+zargo_canvas_create(zargo_Canvas *c, zargo_Engine e, size_t width, size_t height, bool with_alpha);
 
-ZARGO_DECLARE(zargo_Rectangle)
-zargo_canvas_rectangle(zargo_Canvas *c);
+ZARGO_DECLARE(void)
+zargo_canvas_rectangle(zargo_Canvas *c, zargo_Rectangle *out);
 
-ZARGO_DECLARE(zargo_Image)
-zargo_canvas_finish(zargo_Canvas *c);
+ZARGO_DECLARE(void)
+zargo_canvas_finish(zargo_Canvas *c, zargo_Image *out);
 
 ZARGO_DECLARE(void)
 zargo_canvas_close(zargo_Canvas *c);

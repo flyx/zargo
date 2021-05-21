@@ -46,24 +46,29 @@ int main(int argc, char *argv[]) {
       ZARGO_BACKEND_OGLES_20
 #endif
       , w, h, false);
-  zargo_Image tex = zargo_engine_load_image(e, "test.png");
+  zargo_Image tex;
+  zargo_engine_load_image(e, &tex, "test.png");
   printf("loaded texture: w = %zu, h = %zu, alpha = %d\n", tex.width, tex.height, tex.has_alpha);
   float angle = 0, iangle = 0;
 
-  zargo_Image painted = zargo_image_empty();
+  zargo_Image painted;
+  zargo_image_empty(&painted);
 
   {
-    zargo_Canvas canvas = zargo_canvas_create(e, 200, 200, false);
-    zargo_Rectangle area = zargo_canvas_rectangle(&canvas);
-    zargo_engine_fill_rect(e, zargo_rectangle_position(area, 100, 100, ZARGO_HALIGN_LEFT, ZARGO_VALIGN_TOP),
-        (uint8_t[]){255,0,0,255}, true);
-    zargo_engine_fill_rect(e, zargo_rectangle_position(area, 100, 100, ZARGO_HALIGN_RIGHT, ZARGO_VALIGN_TOP),
-        (uint8_t[]){255,255,0,255}, true);
-    zargo_engine_fill_rect(e, zargo_rectangle_position(area, 100, 100, ZARGO_HALIGN_LEFT, ZARGO_VALIGN_BOTTOM),
-        (uint8_t[]){0,0,255,255}, true);
-    zargo_engine_fill_rect(e, zargo_rectangle_position(area, 100, 100, ZARGO_HALIGN_RIGHT, ZARGO_VALIGN_BOTTOM),
-        (uint8_t[]){0,255,0,255}, true);
-    painted = zargo_canvas_finish(&canvas);
+    zargo_Canvas canvas;
+    zargo_canvas_create(&canvas, e, 200, 200, false);
+    printf("created canvas: w= %zu, h = %zu\n", canvas.target_image.width, canvas.target_image.height);
+    zargo_Rectangle area, target;
+    zargo_canvas_rectangle(&canvas, &area);
+    zargo_rectangle_position(&area, &target, 100, 100, ZARGO_HALIGN_LEFT, ZARGO_VALIGN_TOP);
+    zargo_engine_fill_rect(e, &target, (uint8_t[]){255,0,0,255}, true);
+    zargo_rectangle_position(&area, &target, 100, 100, ZARGO_HALIGN_RIGHT, ZARGO_VALIGN_TOP);
+    zargo_engine_fill_rect(e, &target, (uint8_t[]){255,255,0,255}, true);
+    zargo_rectangle_position(&area, &target, 100, 100, ZARGO_HALIGN_LEFT, ZARGO_VALIGN_BOTTOM);
+    zargo_engine_fill_rect(e, &target, (uint8_t[]){0,0,255,255}, true);
+    zargo_rectangle_position(&area, &target, 100, 100, ZARGO_HALIGN_RIGHT, ZARGO_VALIGN_BOTTOM);
+    zargo_engine_fill_rect(e, &target, (uint8_t[]){0,255,0,255}, true);
+    zargo_canvas_finish(&canvas, &painted);
   }
 
   zargo_Rectangle r1 = (zargo_Rectangle){
@@ -73,19 +78,28 @@ int main(int argc, char *argv[]) {
 
   while (glfwWindowShouldClose(window) == GL_FALSE) {
     zargo_engine_clear(e, (uint8_t[]){0,0,0,255});
-    zargo_engine_fill_rect(e, r1, (uint8_t[]){255,0,0,255}, true);
-    zargo_engine_fill_unit(e, zargo_transform_rotate(zargo_rectangle_transformation(r2), angle),
-        (uint8_t[]){0,255,0,255}, true);
-    zargo_Rectangle area = zargo_image_area(tex);
-    zargo_engine_draw_image(e, tex,
-        zargo_rectangle_transformation(zargo_rectangle_move(area, 500, 400)),
-        zargo_transform_compose(zargo_transform_rotate(zargo_transform_identity(), iangle), zargo_rectangle_transformation(area)),
-        255);
+    zargo_engine_fill_rect(e, &r1, (uint8_t[]){255,0,0,255}, true);
+    zargo_Transform target;
+    zargo_rectangle_transformation(&r2, &target);
+    zargo_transform_rotate(&target, NULL, angle);
+    zargo_engine_fill_unit(e, &target, (uint8_t[]){0,255,0,255}, true);
+    zargo_Rectangle area, moved;
+    zargo_image_area(&tex, &area);
+    zargo_rectangle_move(&area, &moved, 500, 400);
+    zargo_rectangle_transformation(&moved, &target);
+    zargo_Transform src, tmp;
+    zargo_transform_identity(&tmp);
+    zargo_transform_rotate(&tmp, NULL, iangle);
+    zargo_rectangle_transformation(&area, &src);
+    zargo_transform_compose(&tmp, &src, &src);
+
+    zargo_engine_draw_image(e, &tex, &target, &src, 255);
     angle = fmodf(angle + 0.01, 2*3.14159);
     iangle = fmodf(iangle + 0.001, 2*3.14159);
 
-    if (!zargo_image_is_empty(painted)) {
-      zargo_image_draw_all(painted, e, zargo_image_area(painted), 255);
+    if (!zargo_image_is_empty(&painted)) {
+      zargo_image_area(&painted, &area);
+      zargo_image_draw(&painted, e, &area, NULL, 255);
     }
 
     glfwSwapBuffers(window);

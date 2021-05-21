@@ -14,6 +14,12 @@ export fn zargo_engine_set_window_size(e: ?*zargo.Engine, width: u32, height: u3
   } else unreachable;
 }
 
+export fn zargo_engine_area(e: ?*zargo.Engine, r: ?*CRectangle) void {
+  if (e != null and r != null) {
+    r.?.* = CRectangle.to(e.?.area());
+  } else unreachable;
+}
+
 export fn zargo_engine_clear(e: ?*zargo.Engine, color: *[4]u8) void {
   if (e) |engine| {
     engine.clear(color.*);
@@ -27,54 +33,68 @@ export fn zargo_engine_close(e: ?*zargo.Engine) void {
   } else unreachable;
 }
 
-export fn zargo_engine_fill_unit(e: ?*zargo.Engine, t: zargo.Transform, color: *[4]u8, copy_alpha: bool) void {
-  if (e) |engine| {
-    engine.fillUnit(t, color.*, copy_alpha);
+export fn zargo_engine_fill_unit(e: ?*zargo.Engine, t: ?*zargo.Transform, color: *[4]u8, copy_alpha: bool) void {
+  if (e != null and t != null) {
+    e.?.fillUnit(t.?.*, color.*, copy_alpha);
   } else unreachable;
 }
 
-export fn zargo_engine_fill_rect(e: ?*zargo.Engine, r: CRectangle, color: *[4]u8, copy_alpha: bool) void {
-  if (e) |engine| {
-    engine.fillRect(CRectangle.from(r), color.*, copy_alpha);
+export fn zargo_engine_fill_rect(e: ?*zargo.Engine, r: ?*CRectangle, color: *[4]u8, copy_alpha: bool) void {
+  if (e != null and r != null) {
+    e.?.fillRect(CRectangle.from(r.?.*), color.*, copy_alpha);
   } else unreachable;
 }
 
-export fn zargo_engine_load_image(e: ?*zargo.Engine, path: [*:0]u8) zargo.Image {
+export fn zargo_engine_load_image(e: ?*zargo.Engine, i: ?*zargo.Image, path: [*:0]u8) void {
   if (e) |engine| {
-    return engine.loadImage(std.mem.span(path));
+    if (i) |image| {
+      image.* = engine.loadImage(std.mem.span(path));
+    } else unreachable;
   } else unreachable;
 }
 
-export fn zargo_engine_draw_image(e: ?*zargo.Engine, i: zargo.Image, dst_transform: zargo.Transform, src_transform: zargo.Transform, alpha: u8) void {
-  if (e) |engine| {
-    engine.drawImage(i, dst_transform, src_transform, alpha);
+export fn zargo_engine_draw_image(e: ?*zargo.Engine, i: ?*zargo.Image, dst_transform: ?*zargo.Transform, src_transform: ?*zargo.Transform, alpha: u8) void {
+  if (e != null and i != null and dst_transform != null and src_transform != null) {
+    e.?.drawImage(i.?.*, dst_transform.?.*, src_transform.?.*, alpha);
   } else unreachable;
 }
 
-export fn zargo_transform_identity() zargo.Transform {
-  return zargo.Transform.identity();
+export fn zargo_transform_identity(t: ?*zargo.Transform) void {
+  if (t) |transform| {
+    transform.* = zargo.Transform.identity();
+  } else unreachable;
 }
 
-export fn zargo_transform_translate(t: zargo.Transform, x: f32, y: f32) zargo.Transform {
-  return t.translate(x, y);
+export fn zargo_transform_translate(in: ?*zargo.Transform, out: ?*zargo.Transform, dx: f32, dy: f32) void {
+  if (in) |t| {
+    (out orelse t).* = t.translate(dx, dy);
+  } else unreachable;
 }
 
-export fn zargo_transform_rotate(t: zargo.Transform, angle: f32) zargo.Transform {
-  return t.rotate(angle);
+export fn zargo_transform_rotate(in: ?*zargo.Transform, out: ?*zargo.Transform, angle: f32) void {
+  if (in) |t| {
+    const res = t.rotate(angle);
+    (out orelse t).* = res;
+  } else unreachable;
 }
 
-export fn zargo_transform_scale(t: zargo.Transform, x: f32, y: f32) zargo.Transform {
-  return t.scale(x, y);
+export fn zargo_transform_scale(in: ?*zargo.Transform, out: ?*zargo.Transform, factorX: f32, factorY: f32) void {
+  if (in) |t| {
+    (out orelse t).* = t.scale(factorX, factorY);
+  } else unreachable;
 }
 
-export fn zargo_transform_compose(t1: zargo.Transform, t2: zargo.Transform) zargo.Transform {
-  return t1.compose(t2);
+export fn zargo_transform_compose(l: ?*zargo.Transform, r: ?*zargo.Transform, out: ?*zargo.Transform) void {
+  if (l != null and r != null and out != null) {
+    const res = l.?.compose(r.?.*);
+    out.?.* = res;
+  } else unreachable;
 }
 
 const CRectangle = extern struct {
   x: i32, y: i32, width: u32, height: u32,
 
-  fn to(r: zargo.Rectangle) CRectangle {
+  fn to(r: zargo.Rectangle) callconv(.Inline) CRectangle {
     var ret: CRectangle = undefined;
     inline for(std.meta.fields(CRectangle)) |fld| {
       @field(ret, fld.name) = @field(r, fld.name);
@@ -82,7 +102,7 @@ const CRectangle = extern struct {
     return ret;
   }
 
-  fn from(r: CRectangle) zargo.Rectangle {
+  fn from(r: CRectangle) callconv(.Inline) zargo.Rectangle {
     var ret: zargo.Rectangle = undefined;
     inline for(std.meta.fields(zargo.Rectangle)) |fld| {
       @field(ret, fld.name) = @intCast(fld.field_type, @field(r, fld.name));
@@ -91,58 +111,76 @@ const CRectangle = extern struct {
   }
 };
 
-export fn zargo_rectangle_translation(r: CRectangle) zargo.Transform {
-  return CRectangle.from(r).translation();
-}
-
-export fn zargo_rectangle_transformation(r: CRectangle) zargo.Transform {
-  return CRectangle.from(r).transformation();
-}
-
-export fn zargo_rectangle_move(r: CRectangle, dx: i32, dy: i32) CRectangle {
-  return CRectangle.to(CRectangle.from(r).move(dx, dy));
-}
-
-export fn zargo_rectangle_grow(r: CRectangle, dw: i32, dh: i32) CRectangle {
-  return CRectangle.to(CRectangle.from(r).grow(dw, dh));
-}
-
-export fn zargo_rectangle_scale(r: CRectangle, factorX: f32, factorY: f32) CRectangle {
-  return CRectangle.to(CRectangle.from(r).scale(factorX, factorY));
-}
-
-export fn zargo_rectangle_position(r: CRectangle, width: u32, height: u32, horiz: zargo.Rectangle.HAlign, vert: zargo.Rectangle.VAlign) CRectangle {
-  return CRectangle.to(CRectangle.from(r).position(@intCast(u31, width), @intCast(u31, height), horiz, vert));
-}
-
-export fn zargo_image_empty() zargo.Image {
-  return zargo.Image.empty();
-}
-
-export fn zargo_image_is_empty(i: zargo.Image) bool {
-  return i.isEmpty();
-}
-
-export fn zargo_image_area(i: zargo.Image) CRectangle {
-  return CRectangle.to(i.area());
-}
-
-export fn zargo_image_draw(i: zargo.Image, e: ?*zargo.Engine, dst_area: CRectangle, src_area: CRectangle, alpha: u8) void {
-  if (e) |engine| {
-    i.draw(engine, CRectangle.from(dst_area), CRectangle.from(src_area), alpha);
+export fn zargo_rectangle_translation(in: ?*CRectangle, out: ?*zargo.Transform) void {
+  if (in != null and out != null) {
+    out.?.* = CRectangle.from(in.?.*).translation();
   } else unreachable;
 }
 
-export fn zargo_image_draw_all(i: zargo.Image, e: ?*zargo.Engine, dst_area: CRectangle, alpha: u8) void {
-  if (e) |engine| {
-    i.drawAll(engine, CRectangle.from(dst_area), alpha);
+export fn zargo_rectangle_transformation(in: ?*CRectangle, out: ?*zargo.Transform) void {
+  if (in != null and out != null) {
+    out.?.* = CRectangle.from(in.?.*).transformation();
   } else unreachable;
 }
 
-export fn zargo_canvas_create(e: ?*zargo.Engine, width: usize, height: usize, with_alpha: bool) zargo.Canvas {
-  if (e) |engine| {
-    return engine.createCanvas(width, height, with_alpha) catch zargo.Canvas{
-      .e = engine,
+export fn zargo_rectangle_move(in: ?*CRectangle, out: ?*CRectangle, dx: i32, dy: i32) void {
+  if (in) |r| {
+    const res = CRectangle.to(CRectangle.from(r.*).move(dx, dy));
+    (out orelse r).* = res;
+  } else unreachable;
+}
+
+export fn zargo_rectangle_grow(in: ?*CRectangle, out: ?*CRectangle, dw: i32, dh: i32) void {
+  if (in) |r| {
+    const res = CRectangle.to(CRectangle.from(r.*).grow(dw, dh));
+    (out orelse r).* = res;
+  } else unreachable;
+}
+
+export fn zargo_rectangle_scale(in: ?*CRectangle, out: ?*CRectangle, factorX: f32, factorY: f32) void {
+  if (in) |r| {
+    const res = CRectangle.to(CRectangle.from(r.*).scale(factorX, factorY));
+    (out orelse r).* = res;
+  } else unreachable;
+}
+
+export fn zargo_rectangle_position(in: ?*CRectangle, out: ?*CRectangle, width: u32, height: u32, horiz: zargo.Rectangle.HAlign, vert: zargo.Rectangle.VAlign) void {
+  if (in) |r| {
+    const res = CRectangle.to(CRectangle.from(r.*).position(@intCast(u31, width), @intCast(u31, height), horiz, vert));
+    (out orelse r).* = res;
+  } else unreachable;
+}
+
+export fn zargo_image_empty(i: ?*zargo.Image) void {
+  if (i) |image| {
+    image.* = zargo.Image.empty();
+  } else unreachable;
+}
+
+export fn zargo_image_is_empty(i: ?*zargo.Image) bool {
+  if (i) |image| {
+    return image.isEmpty();
+  } else unreachable;
+}
+
+export fn zargo_image_area(in: ?*zargo.Image, out: ?*CRectangle) void {
+  if (in != null and out != null) {
+    out.?.* = CRectangle.to(in.?.area());
+  } else unreachable;
+}
+
+export fn zargo_image_draw(i: ?*zargo.Image, e: ?*zargo.Engine, dst_area: ?*CRectangle, src_area: ?*CRectangle, alpha: u8) void {
+  if (e != null and i != null) {
+    var src = if (src_area) |v| CRectangle.from(v.*) else i.?.area();
+    var dst = if (dst_area) |v| CRectangle.from(v.*) else e.?.area();
+    i.?.draw(e.?, dst, src, alpha);
+  } else unreachable;
+}
+
+export fn zargo_canvas_create(out: ?*zargo.Canvas, e: ?*zargo.Engine, width: usize, height: usize, with_alpha: bool) void {
+  if (e != null and out != null) {
+    out.?.* = e.?.createCanvas(width, height, with_alpha) catch zargo.Canvas{
+      .e = e.?,
       .previous_framebuffer = .invalid,
       .framebuffer = .invalid,
       .target_image = zargo.Image.empty(),
@@ -153,15 +191,15 @@ export fn zargo_canvas_create(e: ?*zargo.Engine, width: usize, height: usize, wi
   } else unreachable;
 }
 
-export fn zargo_canvas_rectangle(c: ?*zargo.Canvas) CRectangle {
-  if (c) |canvas| {
-    return CRectangle.to(canvas.rectangle());
+export fn zargo_canvas_rectangle(c: ?*zargo.Canvas, out: ?*CRectangle) void {
+  if (c != null and out != null) {
+    out.?.* = CRectangle.to(c.?.rectangle());
   } else unreachable;
 }
 
-export fn zargo_canvas_finish(c: ?*zargo.Canvas) zargo.Image {
-  if (c) |canvas| {
-    return canvas.finish() catch zargo.Image.empty();
+export fn zargo_canvas_finish(c: ?*zargo.Canvas, out: ?*zargo.Image) void {
+  if (c != null and out != null) {
+    out.?.* = c.?.finish() catch zargo.Image.empty();
   } else unreachable;
 }
 
