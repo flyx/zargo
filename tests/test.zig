@@ -32,6 +32,9 @@ pub fn main() !u8 {
   c.glfwWindowHint(c.GLFW_CONTEXT_VERSION_MINOR, 2);
   c.glfwWindowHint(c.GLFW_OPENGL_FORWARD_COMPAT, c.GL_TRUE);
   c.glfwWindowHint(c.GLFW_OPENGL_PROFILE, c.GLFW_OPENGL_CORE_PROFILE);
+  if (std.builtin.os.tag == .windows) {
+    c.glfwWindowHint(c.GLFW_OPENGL_DEBUG_CONTEXT, c.GL_TRUE);
+  }
 
   var window = c.glfwCreateWindow(800, 600, "test", null, null) orelse {
     std.debug.panic("unable to create window\n", .{});
@@ -50,7 +53,7 @@ pub fn main() !u8 {
     .macos => .ogl_32,
     .windows => .ogl_43,
     else => .ogles_20,
-  }, @intCast(u32, w), @intCast(u32, h), false);
+  }, @intCast(u32, w), @intCast(u32, h), std.builtin.os.tag == .windows);
 
   var tex = e.loadImage("test.png");
   std.debug.print("loaded texture: w = {}, h = {}, alpha= {}\n", .{tex.width, tex.height, tex.has_alpha});

@@ -55,40 +55,44 @@ pub fn build(b: *Builder) void {
     .artifacts = b.option(Artifacts, "artifacts", "`library`, `tests`, or `all`") orelse .all,
   };
 
+  const lib = b.addStaticLibrary("zargo", "src/libzargo.zig");
+  context.addDeps(lib);
+  pkgs.addAllTo(lib);
+
   if (context.artifacts != .tests) {
-    const lib = b.addStaticLibrary("zargo", "src/libzargo.zig");
-    context.addDeps(lib);
-    pkgs.addAllTo(lib);
     lib.install();
   }
 
+  const exe = b.addExecutable("test", "tests/test.zig");
+  context.addDeps(exe);
+  if (std.Target.current.os.tag == .windows) {
+    exe.linkSystemLibrary("glfw3");
+  } else {
+    exe.linkSystemLibrary("glfw");
+  }
+  exe.addPackage(.{
+    .name = "zargo",
+    .path = "src/zargo.zig",
+    .dependencies = &.{pkgs.zgl}
+  });
+  exe.strip = true;
+
   if (context.artifacts != .library) {
-    const exe = b.addExecutable("test", "tests/test.zig");
-    context.addDeps(exe);
-    if (std.Target.current.os.tag == .windows) {
-      exe.linkSystemLibrary("glfw3");
-    } else {
-      exe.linkSystemLibrary("glfw");
-    }
-    exe.addPackage(.{
-      .name = "zargo",
-      .path = "src/zargo.zig",
-      .dependencies = &.{pkgs.zgl}
-    });
-    exe.strip = true;
     exe.install();
   }
+
+  const cexe = b.addExecutable("ctest", null);
+  context.addDeps(cexe);
+  cexe.addIncludeDir("include");
+  cexe.addCSourceFile("tests/test.c", &[_][]const u8{"-std=c99"});
+  if (std.Target.current.os.tag == .windows) {
+    cexe.linkSystemLibrary("glfw3");
+  } else {
+    cexe.linkSystemLibrary("glfw");
+  }
+  cexe.linkLibrary(lib);
+
   if (context.artifacts == .all) {
-    const cexe = b.addExecutable("ctest", null);
-    context.addDeps(cexe);
-    cexe.addIncludeDir("include");
-    cexe.addCSourceFile("tests/test.c", &[_][]const u8{"-std=c99"});
-    if (std.Target.current.os.tag == .windows) {
-      cexe.linkSystemLibrary("glfw3");
-    } else {
-      cexe.linkSystemLibrary("glfw");
-    }
-    cexe.addObjectFile("zig-out/lib/libzargo.a");
     cexe.install();
   }
 }

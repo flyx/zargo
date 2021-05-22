@@ -648,6 +648,7 @@ fn EngineImpl(comptime Self: type, comptime RectImpl: type, comptime ImgImpl: ty
         }
         gl.enable(gl.Capabilities.debug_output);
         gl.debugMessageCallback(e, debugCallback);
+        //gl.debugMessageInsert(.application, .other, .notification, "initialized debug output");
       }
 
       const vertices = [_]f32{0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0};
