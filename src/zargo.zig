@@ -615,7 +615,13 @@ fn EngineImpl(comptime Self: type, comptime RectImpl: type, comptime ImgImpl: ty
     fn debugCallback(e: *const Self, source: gl.DebugSource,
         msg_type: gl.DebugMessageType, id: usize, severity: gl.DebugSeverity,
         message: []const u8) void {
-      // TODO
+      if (msg_type == .@"error") {
+        std.log.scoped(.OpenGL).err("[{s}] {s}: {s}", .{@tagName(severity), @tagName(source), message});
+      } else if (severity != .notification) {
+        std.log.scoped(.OpenGL).warn("[{s}|{s}] {s}: {s}", .{@tagName(msg_type), @tagName(severity), @tagName(source), message});
+      } else {
+        std.log.scoped(.OpenGL).notice("[{s}|{s}] {s}: {s}", .{@tagName(msg_type), @tagName(severity), @tagName(source), message});
+      }
     }
 
     /// init initializes the engine and must be called once before using the
