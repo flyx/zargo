@@ -48,7 +48,12 @@ int main(int argc, char *argv[]) {
       , w, h, false);
   zargo_Image tex;
   zargo_engine_load_image(e, &tex, "test.png");
-  printf("loaded texture: w = %zu, h = %zu, alpha = %d\n", tex.width, tex.height, tex.has_alpha);
+  printf("loaded texture: w = %u, h = %u, alpha = %d\n", tex.width, tex.height, tex.has_alpha);
+
+  zargo_Image mask;
+  zargo_engine_load_image(e, &mask, "paper.png");
+  printf("loaded mask: w = %u, h = %u\n", tex.width, tex.height);
+
   float angle = 0, iangle = 0;
 
   zargo_Image painted;
@@ -57,7 +62,7 @@ int main(int argc, char *argv[]) {
   {
     zargo_Canvas canvas;
     zargo_canvas_create(&canvas, e, 200, 200, false);
-    printf("created canvas: w= %zu, h = %zu\n", canvas.target_image.width, canvas.target_image.height);
+    printf("created canvas: w= %u, h = %u\n", canvas.target_image.width, canvas.target_image.height);
     zargo_Rectangle area, target;
     zargo_canvas_rectangle(&canvas, &area);
     zargo_rectangle_position(&area, &target, 100, 100, ZARGO_HALIGN_LEFT, ZARGO_VALIGN_TOP);
@@ -69,6 +74,9 @@ int main(int argc, char *argv[]) {
     zargo_rectangle_position(&area, &target, 100, 100, ZARGO_HALIGN_RIGHT, ZARGO_VALIGN_BOTTOM);
     zargo_engine_fill_rect(e, &target, (uint8_t[]){0,255,0,255}, true);
     zargo_canvas_finish(&canvas, &painted);
+    if (zargo_image_is_empty(&painted)) {
+      printf("image that was created is empty!\n");
+    }
   }
 
   zargo_Rectangle r1 = (zargo_Rectangle){
@@ -85,22 +93,27 @@ int main(int argc, char *argv[]) {
     zargo_engine_fill_unit(e, &target, (uint8_t[]){0,255,0,255}, true);
     zargo_Rectangle area, moved;
     zargo_image_area(&tex, &area);
-    zargo_rectangle_move(&area, &moved, 500, 400);
+    zargo_rectangle_move(&area, &moved, 400, 550);
     zargo_rectangle_transformation(&moved, &target);
-    zargo_Transform src, tmp;
-    zargo_transform_identity(&tmp);
-    zargo_transform_rotate(&tmp, NULL, iangle);
-    zargo_rectangle_transformation(&area, &src);
-    zargo_transform_compose(&tmp, &src, &src);
-
-    zargo_engine_draw_image(e, &tex, &target, &src, 255);
-    angle = fmodf(angle + 0.01, 2*3.14159);
-    iangle = fmodf(iangle + 0.001, 2*3.14159);
+    zargo_engine_draw_image(e, &tex, &target, NULL, 255);
 
     if (!zargo_image_is_empty(&painted)) {
       zargo_image_area(&painted, &area);
       zargo_image_draw(&painted, e, &area, NULL, 255);
     }
+
+    zargo_Rectangle mRect = {
+      .x = 400, .y = 0, .width = 2*mask.width, .height = mask.height
+    };
+    zargo_Transform src, tmp;
+    zargo_transform_identity(&tmp);
+    zargo_rectangle_transformation(&mRect, &target);
+    zargo_transform_scale(&target, &src, 0.5, 0.5);
+    zargo_transform_rotate(&src, NULL, iangle);
+    zargo_engine_blend_unit(e, &mask, &target, &src, (uint8_t[]){128,128,0,255}, (uint8_t[]){20,20,0,255});
+
+    angle = fmodf(angle + 0.01, 2*3.14159);
+    iangle = fmodf(iangle + 0.001, 2*3.14159);
 
     glfwSwapBuffers(window);
     glfwPollEvents();

@@ -34,7 +34,7 @@ typedef struct {
 
 typedef struct {
   uint32_t id;
-  size_t width, height;
+  uint32_t width, height;
   bool flipped, has_alpha;
 } zargo_Image;
 
@@ -85,6 +85,12 @@ zargo_engine_fill_unit(zargo_Engine e, zargo_Transform *t, uint8_t color[4], boo
 
 ZARGO_DECLARE(void)
 zargo_engine_fill_rect(zargo_Engine e, zargo_Rectangle *r, uint8_t color[4], bool copy_alpha);
+
+ZARGO_DECLARE(void)
+zargo_engine_blend_unit(zargo_Engine e, zargo_Image *mask, zargo_Transform *dst_transform, zargo_Transform *src_transform, uint8_t color1[4], uint8_t color2[4]);
+
+ZARGO_DECLARE(void)
+zargo_engine_blend_rect(zargo_Engine e, zargo_Image *mask, zargo_Rectangle *dst_rect, zargo_Rectangle *src_rect, uint8_t color1[4], uint8_t color2[4]);
 
 ZARGO_DECLARE(void)
 zargo_engine_load_image(zargo_Engine e, zargo_Image *i, const char *path);
@@ -138,7 +144,7 @@ ZARGO_DECLARE(void)
 zargo_image_draw(zargo_Image *i, zargo_Engine e, zargo_Rectangle *dst_area, zargo_Rectangle *src_area, uint8_t alpha);
 
 ZARGO_DECLARE(void)
-zargo_canvas_create(zargo_Canvas *c, zargo_Engine e, size_t width, size_t height, bool with_alpha);
+zargo_canvas_create(zargo_Canvas *c, zargo_Engine e, uint32_t width, uint32_t height, bool with_alpha);
 
 ZARGO_DECLARE(void)
 zargo_canvas_rectangle(zargo_Canvas *c, zargo_Rectangle *out);

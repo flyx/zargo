@@ -55,6 +55,9 @@ pub fn main() !u8 {
   var tex = e.loadImage("test.png");
   std.debug.print("loaded texture: w = {}, h = {}, alpha= {}\n", .{tex.width, tex.height, tex.has_alpha});
 
+  var mask = e.loadImage("paper.png");
+  std.debug.print("loaded mask: w = {}, h = {}\n", .{tex.width, tex.height});
+
   var angle: f32 = 0;
   var iangle: f32 = 0;
 
@@ -80,12 +83,16 @@ pub fn main() !u8 {
     e.clear([_]u8{0,0,0,255});
     e.fillRect(r1, [_]u8{255,0,0,255}, true);
     e.fillUnit(r2.transformation().rotate(angle), [_]u8{0,255,0,255}, true);
-    e.drawImage(tex, tex.area().move(500, 400).transformation(),
-      zargo.Transform.identity().rotate(iangle).compose(tex.area().transformation()), 255);
-    angle = @rem((angle + 0.01), 2*3.14159);
-    iangle = @rem((iangle + 0.001), 2*3.14159);
+    e.drawImage(tex, tex.area().move(400, 550).transformation(),
+      tex.area().transformation(), 255);
 
     if (!painted.isEmpty()) painted.drawAll(&e, painted.area(), 255);
+
+    const mRect = zargo.Rectangle{.x = 400, .y = 0, .width = @intCast(u31, 2*mask.width), .height = @intCast(u31, mask.height)};
+    e.blendUnit(mask, mRect.transformation(), mRect.scale(0.5, 0.5).transformation().rotate(iangle), [_]u8{128,128,0,255}, [_]u8{20,20,0,255});
+
+    angle = @rem((angle + 0.01), 2*3.14159);
+    iangle = @rem((iangle + 0.001), 2*3.14159);
 
     c.glfwSwapBuffers(window);
     c.glfwPollEvents();
