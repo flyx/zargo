@@ -49,7 +49,7 @@ pub fn main() !u8 {
   c.glfwGetFramebufferSize(window, &w, &h);
 
   var e: zargo.Engine = undefined;
-  try e.init(switch (std.builtin.os.tag) {
+  try e.init(std.heap.c_allocator, switch (std.builtin.os.tag) {
     .macos => .ogl_32,
     .windows => .ogl_43,
     else => .ogles_20,

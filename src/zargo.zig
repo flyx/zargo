@@ -355,6 +355,47 @@ pub const CCanvas = extern struct {
 };
 
 //////////////////////////////////////////////////////////////////////////////
+// Text rendering
+
+const ft = @cImport({
+  @cInclude("ft2build.h");
+  @cInclude("freetype/freetype.h");
+  @cInclude("freetype/ftmodapi.h");
+});
+
+const FreeTypeMemImpl = struct {
+  fn userAllocator(memory: ft.FT_Memory) *std.mem.Allocator {
+    return @ptrCast(*std.mem.Allocator, @alignCast(@alignOf(*std.mem.Allocator), memory.*.user));
+  }
+
+  fn allocFunc(memory: ft.FT_Memory, size: c_long) callconv(.C) ?*c_void {
+    const slice = userAllocator(memory).allocAdvanced(u8, @alignOf(usize), @intCast(usize, size) + @sizeOf(usize), .at_least) catch return null;
+    const p = @ptrCast([*]usize, slice.ptr);
+    p.* = @intCast(usize, size);
+    return @ptrCast(*c_void, p+1);
+  }
+
+  fn freeFunc(memory: ft.FT_Memory, block: ?*c_void) callconv(.C) void {
+    const p = @ptrCast([*]usize, @alignCast(@alignOf(usize), block orelse return)) - 1;
+    const slice: []u8 = @ptrCast([*]u8, p)[0..p[0] + @sizeOf(usize)];
+    userAllocator(memory).free(slice);
+  }
+
+  fn reallocFunc(memory: ft.FT_Memory, cur_size: c_long, new_size: c_long, block: ?*c_void) callconv(.C) ?*c_void {
+    const p = @ptrCast([*]usize, @alignCast(@alignOf(usize), block orelse return null)) - 1;
+    const slice = @ptrCast([*]u8, p)[0..p[0] + @sizeOf(usize)];
+    const ret_slice = userAllocator(memory).realloc(slice, @intCast(usize, new_size) + @sizeOf(usize)) catch return null;
+    const rp = @ptrCast([*]usize, ret_slice.ptr);
+    rp.* = @intCast(usize, new_size);
+    return @ptrCast(*c_void, rp+1);
+  }
+};
+
+pub const Font = extern struct {
+
+};
+
+//////////////////////////////////////////////////////////////////////////////
 // Engine
 
 const gl = @import("zgl");
@@ -370,7 +411,8 @@ const ShaderError = error {
 };
 
 const EngineError = error {
-  NoDebugAvailable
+  NoDebugAvailable,
+  FreeTypeError,
 };
 
 fn loadShader(src: []const u8, t: gl.ShaderType) !gl.Shader {
@@ -631,7 +673,7 @@ fn EngineImpl(comptime Self: type, comptime RectImpl: type, comptime ImgImpl: ty
     ///
     /// The backend you give must match the OpenGL context you created.
     /// If it doesn't, you will likely get errors from shader compilation.
-
+    ///
     /// windows_width and window_height ought to be the size of your OpenGL
     /// context in pixels. Mind that this must be the *real* pixel size, not the
     /// virtual pixel size you may get if you have an HiDPI monitor.
@@ -640,7 +682,7 @@ fn EngineImpl(comptime Self: type, comptime RectImpl: type, comptime ImgImpl: ty
     ///
     /// Only set debug to true if backend is ogl_43. No other backend supports
     /// debug output and will return an error.
-    pub fn init(e: *Self, backend: Backend, window_width: u32, window_height: u32, debug: bool) !void {
+    pub fn init(e: *Self, allocator: *std.mem.Allocator, backend: Backend, window_width: u32, window_height: u32, debug: bool) !void {
       e.backend = backend;
       if (debug) {
         if (backend != .ogl_43) {
@@ -713,6 +755,23 @@ fn EngineImpl(comptime Self: type, comptime RectImpl: type, comptime ImgImpl: ty
       gl.depthMask(false);
       e.max_tex_size = gl.getInteger(gl.Parameter.max_texture_size);
       e.setWindowSize(window_width, window_height);
+
+      e.freetype_memory = .{
+        .user = @ptrCast(*c_void, allocator),
+        .alloc = FreeTypeMemImpl.allocFunc,
+        .free = FreeTypeMemImpl.freeFunc,
+        .realloc = FreeTypeMemImpl.reallocFunc,
+      };
+      const ft_res = ft.FT_New_Library(&e.freetype_memory, &e.freetype_lib);
+      if (ft_res != 0) {
+        gl.deleteBuffer(e.vbo);
+        if (e.vao != .invalid) {
+          gl.deleteVertexArray(e.vao);
+        }
+        const msg = std.mem.span(ft.FT_Error_String(ft_res));
+        std.log.scoped(.zargo).err("FreeType init error: {s}", .{msg});
+        return EngineError.FreeTypeError;
+      }
     }
 
     /// setWindowSize updates the window size.
@@ -744,6 +803,7 @@ fn EngineImpl(comptime Self: type, comptime RectImpl: type, comptime ImgImpl: ty
       if (e.vao != .invalid) {
         gl.deleteVertexArray(e.vao);
       }
+      _ = ft.FT_Done_Library(e.freetype_lib);
     }
 
     /// fillUnit fills the unit square around (0,0) with the given color.
@@ -954,6 +1014,8 @@ pub const Engine = struct {
   canvas_count: u8,
   max_tex_size: i32,
   single_value_color: gl.PixelFormat,
+  freetype_memory: ft.FT_MemoryRec_,
+  freetype_lib: ft.FT_Library,
 
   const Impl = EngineImpl(@This(), Rectangle, Image);
 

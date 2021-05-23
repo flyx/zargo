@@ -4,7 +4,7 @@ const zargo = @import("zargo.zig");
 export fn zargo_engine_init(backend: zargo.Backend, window_width: u32, window_height: u32, debug: bool) ?*zargo.Engine {
   var e = std.heap.c_allocator.create(zargo.Engine) catch return null;
   errdefer std.heap.c_allocator.free(e);
-  e.init(backend, window_width, window_height, debug) catch return null;
+  e.init(std.heap.c_allocator, backend, window_width, window_height, debug) catch return null;
   return e;
 }
 

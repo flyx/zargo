@@ -1,5 +1,4 @@
 const std = @import("std");
-const builtin = @import("builtin");
 const Builder = std.build.Builder;
 const pkgs = @import("deps.zig").pkgs;
 
@@ -10,7 +9,7 @@ const Artifacts = enum {
 const Context = struct {
   library_path: ?[]const u8,
   include_path: ?[]const u8,
-  mode: builtin.Mode,
+  mode: std.builtin.Mode,
   target: std.zig.CrossTarget,
   artifacts: Artifacts,
 
@@ -27,10 +26,12 @@ const Context = struct {
 
     s.linkLibC();
     s.linkSystemLibrary("epoxy");
-    if (std.Target.current.os.tag.isDarwin()) {
+    s.linkSystemLibrary("freetype");
+    if (self.target.isDarwin()) {
       s.addFrameworkDir("/System/Library/Frameworks");
       s.linkFramework("OpenGL");
-    } else if (std.Target.current.os.tag == .windows) {
+      s.addIncludeDir("/usr/local/include/freetype2");
+    } else if (self.target.isWindows()) {
       s.linkSystemLibrary("OpenGL32");
     } else {
       s.linkSystemLibrary("GL");
@@ -38,6 +39,8 @@ const Context = struct {
 
     s.addIncludeDir("src");
     s.addCSourceFile("src/stb_image.c", &[_][]const u8{
+      "-isystem",
+      "/Library/Developer/CommandLineTools/SDKs/MacOSX11.0.sdk",
       "-Wall",
       "-Wextra",
       "-Werror",
