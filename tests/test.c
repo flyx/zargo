@@ -10,7 +10,7 @@ void keyCallback(GLFWwindow *win, int key, int scancode, int action, int mods) {
   if (action != GLFW_PRESS) return;
 
   switch (key) {
-    case GLFW_KEY_ESCAPE: glfwSetWindowShouldClose(win, GL_TRUE); break;
+    case GLFW_KEY_ESCAPE: glfwSetWindowShouldClose(win, true); break;
     default: break;
   }
 }
@@ -85,7 +85,7 @@ int main(int argc, char *argv[]) {
   zargo_Rectangle r2 = (zargo_Rectangle){
     .x = w*3/4 - 50, .y = h*3/4 - 50, .width = 100, .height = 100};
 
-  while (glfwWindowShouldClose(window) == GL_FALSE) {
+  while (glfwWindowShouldClose(window) == false) {
     zargo_engine_clear(e, (uint8_t[]){0,0,0,255});
     zargo_engine_fill_rect(e, &r1, (uint8_t[]){255,0,0,255}, true);
     zargo_Transform target;
