@@ -6,14 +6,19 @@ const Artifacts = enum {
   library, tests, all
 };
 
+const ContextErrors = error {
+  UnsupportedGLESVersion
+};
+
 const Context = struct {
   library_path: ?[]const u8,
   include_path: ?[]const u8,
   mode: std.builtin.Mode,
   target: std.zig.CrossTarget,
   artifacts: Artifacts,
+  use_gles: u8,
 
-  fn addDeps(self: Context, s: *std.build.LibExeObjStep) void {
+  fn addDeps(self: Context, s: *std.build.LibExeObjStep) !void {
     s.setBuildMode(self.mode);
     s.setTarget(self.target);
 
@@ -22,6 +27,8 @@ const Context = struct {
     }
     if (self.include_path) |value| {
       s.addIncludeDir(value);
+      var ft_path: [256]u8 = undefined;
+      s.addIncludeDir(try std.fmt.bufPrint(&ft_path, "{s}/freetype2", .{value}));
     }
 
     s.linkLibC();
@@ -30,11 +37,15 @@ const Context = struct {
     if (self.target.isDarwin()) {
       s.addFrameworkDir("/System/Library/Frameworks");
       s.linkFramework("OpenGL");
-      s.addIncludeDir("/usr/local/include/freetype2");
     } else if (self.target.isWindows()) {
       s.linkSystemLibrary("OpenGL32");
     } else {
-      s.linkSystemLibrary("GL");
+      switch (self.use_gles) {
+        0 => s.linkSystemLibrary("GL"),
+        2 => s.linkSystemLibrary("GLESv2"),
+        3 => s.linkSystemLibrary("GLESv3"),
+        else => return ContextErrors.UnsupportedGLESVersion,
+      }
     }
 
     s.addIncludeDir("src");
@@ -49,17 +60,18 @@ const Context = struct {
   }
 };
 
-pub fn build(b: *Builder) void {
+pub fn build(b: *Builder) !void {
   const context = Context{
     .mode = b.standardReleaseOptions(),
     .target = b.standardTargetOptions(.{}),
     .library_path = b.option([]const u8, "library_path", "search path for libraries"),
     .include_path = b.option([]const u8, "include_path", "include path for headers"),
     .artifacts = b.option(Artifacts, "artifacts", "`library`, `tests`, or `all`") orelse .all,
+    .use_gles = b.option(u8, "gles", "`0`, `2` or `3`. use `0` (default) to link to normal OpenGL. ignored on Windows and macOS.") orelse 0,
   };
 
   const lib = b.addStaticLibrary("zargo", "src/libzargo.zig");
-  context.addDeps(lib);
+  try context.addDeps(lib);
   pkgs.addAllTo(lib);
 
   if (context.artifacts != .tests) {
@@ -67,8 +79,8 @@ pub fn build(b: *Builder) void {
   }
 
   const exe = b.addExecutable("test", "tests/test.zig");
-  context.addDeps(exe);
-  if (std.Target.current.os.tag == .windows) {
+  try context.addDeps(exe);
+  if (context.target.isWindows()) {
     exe.linkSystemLibrary("glfw3");
   } else {
     exe.linkSystemLibrary("glfw");
@@ -85,10 +97,10 @@ pub fn build(b: *Builder) void {
   }
 
   const cexe = b.addExecutable("ctest", null);
-  context.addDeps(cexe);
+  try context.addDeps(cexe);
   cexe.addIncludeDir("include");
   cexe.addCSourceFile("tests/test.c", &[_][]const u8{"-std=c99"});
-  if (std.Target.current.os.tag == .windows) {
+  if (context.target.isWindows()) {
     cexe.linkSystemLibrary("glfw3");
   } else {
     cexe.linkSystemLibrary("glfw");

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <math.h>
 
+#define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
 #include "../include/zargo/zargo.h"
@@ -17,7 +18,7 @@ void keyCallback(GLFWwindow *win, int key, int scancode, int action, int mods) {
 int main(int argc, char *argv[]) {
   //c.glfwSetErrorCallback(errorCallback);
 
-  if (glfwInit() == GL_FALSE) {
+  if (glfwInit() == 0) {
     puts("Failed to initialize GLFW");
     return 1;
   }
@@ -25,7 +26,7 @@ int main(int argc, char *argv[]) {
   glfwWindowHint(GLFW_SAMPLES, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, true);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
   GLFWwindow *window = glfwCreateWindow(800, 600, "test", NULL, NULL);

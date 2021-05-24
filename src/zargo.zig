@@ -361,6 +361,7 @@ const ft = @cImport({
   @cInclude("ft2build.h");
   @cInclude("freetype/freetype.h");
   @cInclude("freetype/ftmodapi.h");
+  @cInclude("freetype/fterrors.h");
 });
 
 const FreeTypeMemImpl = struct {
@@ -768,8 +769,13 @@ fn EngineImpl(comptime Self: type, comptime RectImpl: type, comptime ImgImpl: ty
         if (e.vao != .invalid) {
           gl.deleteVertexArray(e.vao);
         }
-        const msg = std.mem.span(ft.FT_Error_String(ft_res));
-        std.log.scoped(.zargo).err("FreeType init error: {s}", .{msg});
+        if (@hasField(ft, "FT_Error_String")) {
+          const msg = std.mem.span(ft.FT_Error_String(ft_res));
+          std.log.scoped(.zargo).err("FreeType init error: {s}", .{msg});
+        } else {
+          // FT_Error_String not supported in Raspberry Pi FreeType version.
+          std.log.scoped(.zargo).err("FreeType init error", .{});
+        }
         return EngineError.FreeTypeError;
       }
     }

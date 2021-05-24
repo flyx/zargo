@@ -5,3 +5,5 @@ deps
 deps.zig
 .gyro
 gyro.lock
+cross/tmp
+cross/arm-linux-gnueabihf

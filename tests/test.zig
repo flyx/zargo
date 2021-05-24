@@ -3,6 +3,7 @@ const std = @import("std");
 const zargo = @import("zargo");
 
 const c = @cImport({
+  @cDefine("GLFW_INCLUDE_NONE", {});
   @cInclude("GLFW/glfw3.h");
 });
 
@@ -14,7 +15,7 @@ fn keyCallback(win: ?*c.GLFWwindow, key: c_int, scancode: c_int, action: c_int, 
   if (action != c.GLFW_PRESS) return;
 
   switch (key) {
-    c.GLFW_KEY_ESCAPE => c.glfwSetWindowShouldClose(win, c.GL_TRUE),
+    c.GLFW_KEY_ESCAPE => c.glfwSetWindowShouldClose(win, 1),
     else => {},
   }
 }
@@ -22,7 +23,7 @@ fn keyCallback(win: ?*c.GLFWwindow, key: c_int, scancode: c_int, action: c_int, 
 pub fn main() !u8 {
   _ = c.glfwSetErrorCallback(errorCallback);
 
-  if (c.glfwInit() == c.GL_FALSE) {
+  if (c.glfwInit() == 0) {
     std.debug.warn("Failed to initialize GLFW\n", .{});
     return 1;
   }
@@ -30,7 +31,7 @@ pub fn main() !u8 {
   c.glfwWindowHint(c.GLFW_SAMPLES, 4);
   c.glfwWindowHint(c.GLFW_CONTEXT_VERSION_MAJOR, 3);
   c.glfwWindowHint(c.GLFW_CONTEXT_VERSION_MINOR, 2);
-  c.glfwWindowHint(c.GLFW_OPENGL_FORWARD_COMPAT, c.GL_TRUE);
+  c.glfwWindowHint(c.GLFW_OPENGL_FORWARD_COMPAT, 1);
   c.glfwWindowHint(c.GLFW_OPENGL_PROFILE, c.GLFW_OPENGL_CORE_PROFILE);
   if (std.builtin.os.tag == .windows) {
     c.glfwWindowHint(c.GLFW_OPENGL_DEBUG_CONTEXT, c.GL_TRUE);
@@ -82,7 +83,7 @@ pub fn main() !u8 {
   var r1 = zargo.Rectangle{.x = @divTrunc(iw, 4) - 50,     .y = @divTrunc(ih, 4) - 50,     .width = 100, .height = 100};
   var r2 = zargo.Rectangle{.x = @divTrunc(iw * 3, 4) - 50, .y = @divTrunc(ih * 3, 4) - 50, .width = 100, .height = 100};
 
-  while (c.glfwWindowShouldClose(window) == c.GL_FALSE) {
+  while (c.glfwWindowShouldClose(window) == 0) {
     e.clear([_]u8{0,0,0,255});
     e.fillRect(r1, [_]u8{255,0,0,255}, true);
     e.fillUnit(r2.transformation().rotate(angle), [_]u8{0,255,0,255}, true);
