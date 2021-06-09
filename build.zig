@@ -23,12 +23,24 @@ const Context = struct {
     s.setTarget(self.target);
 
     if (self.library_path) |value| {
-      s.addLibPath(value);
+      var pos: usize = 0;
+      while (std.mem.indexOfScalarPos(u8, value, pos, std.fs.path.delimiter)) |end| {
+        s.addLibPath(value[pos..end]);
+        pos = end + 1;
+      }
+      if (pos < value.len) {
+        s.addLibPath(value[pos..]);
+      }
     }
     if (self.include_path) |value| {
-      s.addIncludeDir(value);
-      var ft_path: [256]u8 = undefined;
-      s.addIncludeDir(try std.fmt.bufPrint(&ft_path, "{s}/freetype2", .{value}));
+      var pos: usize = 0;
+      while (std.mem.indexOfScalarPos(u8, value, pos, std.fs.path.delimiter)) |end| {
+        s.addIncludeDir(value[pos..end]);
+        pos = end + 1;
+      }
+      if (pos < value.len) {
+        s.addIncludeDir(value[pos..]);
+      }
     }
 
     s.linkLibC();
@@ -49,15 +61,25 @@ const Context = struct {
     }
 
     s.addIncludeDir("src");
-    s.addCSourceFile("src/stb_image.c", &[_][]const u8{
-      "-isystem",
-      "/Library/Developer/CommandLineTools/SDKs/MacOSX11.0.sdk",
-      "-Wall",
-      "-Wextra",
-      "-Werror",
-      "-Wno-sign-compare"
-    });
+    if (std.Target.current.isDarwin() and self.target.isDarwin()) {
+      s.addCSourceFile("src/stb_image.c", &[_][]const u8{
+        "-isystem",
+        "/Library/Developer/CommandLineTools/SDKs/MacOSX11.0.sdk",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wno-sign-compare"
+      });
+    } else {
+      s.addCSourceFile("src/stb_image.c", &[_][]const u8{
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wno-sign-compare"
+      });
+    }
   }
+
 };
 
 pub fn build(b: *Builder) !void {
@@ -71,6 +93,8 @@ pub fn build(b: *Builder) !void {
   };
 
   const lib = b.addStaticLibrary("zargo", "src/libzargo.zig");
+  // workaround for https://github.com/ziglang/zig/issues/8896
+  lib.force_pic = true;
   try context.addDeps(lib);
   pkgs.addAllTo(lib);
 

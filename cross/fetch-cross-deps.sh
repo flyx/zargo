@@ -16,3 +16,4 @@ while read line; do fetch_and_unpack $line; done < ../arm-linux-gnueabihf.txt
 cd .. && mkdir -p arm-linux-gnueabihf/usr
 mv tmp/usr/lib/arm-linux-gnueabihf arm-linux-gnueabihf/usr/lib
 mv tmp/usr/include arm-linux-gnueabihf/usr/include
+mv tmp/lib/arm-linux-gnueabihf arm-linux-gnueabihf/lib
