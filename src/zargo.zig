@@ -365,30 +365,31 @@ const ft = @cImport({
 });
 
 const FreeTypeMemImpl = struct {
-  fn userAllocator(memory: ft.FT_Memory) *std.mem.Allocator {
-    return @ptrCast(*std.mem.Allocator, @alignCast(@alignOf(*std.mem.Allocator), memory.*.user));
+  fn userAllocator(memory: ft.FT_Memory) std.mem.Allocator {
+    return @ptrCast(*std.mem.Allocator, @alignCast(@alignOf(*std.mem.Allocator), memory.*.user)).*;
   }
 
-  fn allocFunc(memory: ft.FT_Memory, size: c_long) callconv(.C) ?*c_void {
+  fn allocFunc(memory: ft.FT_Memory, size: c_long) callconv(.C) ?*anyopaque {
     const slice = userAllocator(memory).allocAdvanced(u8, @alignOf(usize), @intCast(usize, size) + @sizeOf(usize), .at_least) catch return null;
     const p = @ptrCast([*]usize, slice.ptr);
     p.* = @intCast(usize, size);
-    return @ptrCast(*c_void, p+1);
+    return @ptrCast(*anyopaque, p+1);
   }
 
-  fn freeFunc(memory: ft.FT_Memory, block: ?*c_void) callconv(.C) void {
+  fn freeFunc(memory: ft.FT_Memory, block: ?*anyopaque) callconv(.C) void {
     const p = @ptrCast([*]usize, @alignCast(@alignOf(usize), block orelse return)) - 1;
     const slice: []u8 = @ptrCast([*]u8, p)[0..p[0] + @sizeOf(usize)];
     userAllocator(memory).free(slice);
   }
 
-  fn reallocFunc(memory: ft.FT_Memory, cur_size: c_long, new_size: c_long, block: ?*c_void) callconv(.C) ?*c_void {
+  fn reallocFunc(memory: ft.FT_Memory, cur_size: c_long, new_size: c_long, block: ?*anyopaque) callconv(.C) ?*anyopaque {
+    _ = cur_size;
     const p = @ptrCast([*]usize, @alignCast(@alignOf(usize), block orelse return null)) - 1;
     const slice = @ptrCast([*]u8, p)[0..p[0] + @sizeOf(usize)];
     const ret_slice = userAllocator(memory).realloc(slice, @intCast(usize, new_size) + @sizeOf(usize)) catch return null;
     const rp = @ptrCast([*]usize, ret_slice.ptr);
     rp.* = @intCast(usize, new_size);
-    return @ptrCast(*c_void, rp+1);
+    return @ptrCast(*anyopaque, rp+1);
   }
 };
 
@@ -658,12 +659,13 @@ fn EngineImpl(comptime Self: type, comptime RectImpl: type, comptime ImgImpl: ty
     fn debugCallback(e: *const Self, source: gl.DebugSource,
         msg_type: gl.DebugMessageType, id: usize, severity: gl.DebugSeverity,
         message: []const u8) void {
+      _ = id; _ = e;
       if (msg_type == .@"error") {
         std.log.scoped(.OpenGL).err("[{s}] {s}: {s}", .{@tagName(severity), @tagName(source), message});
       } else if (severity != .notification) {
         std.log.scoped(.OpenGL).warn("[{s}|{s}] {s}: {s}", .{@tagName(msg_type), @tagName(severity), @tagName(source), message});
       } else {
-        std.log.scoped(.OpenGL).notice("[{s}|{s}] {s}: {s}", .{@tagName(msg_type), @tagName(severity), @tagName(source), message});
+        std.log.scoped(.OpenGL).info("[{s}|{s}] {s}: {s}", .{@tagName(msg_type), @tagName(severity), @tagName(source), message});
       }
     }
 
@@ -683,7 +685,14 @@ fn EngineImpl(comptime Self: type, comptime RectImpl: type, comptime ImgImpl: ty
     ///
     /// Only set debug to true if backend is ogl_43. No other backend supports
     /// debug output and will return an error.
-    pub fn init(e: *Self, allocator: *std.mem.Allocator, backend: Backend, window_width: u32, window_height: u32, debug: bool) !void {
+    pub fn init(
+      e: *Self,
+      allocator: std.mem.Allocator,
+      backend: Backend,
+      window_width: u32,
+      window_height: u32,
+      debug: bool,
+    ) !void {
       e.backend = backend;
       if (debug) {
         if (backend != .ogl_43) {
@@ -757,8 +766,9 @@ fn EngineImpl(comptime Self: type, comptime RectImpl: type, comptime ImgImpl: ty
       e.max_tex_size = gl.getInteger(gl.Parameter.max_texture_size);
       e.setWindowSize(window_width, window_height);
 
+      e.allocator = allocator;
       e.freetype_memory = .{
-        .user = @ptrCast(*c_void, allocator),
+        .user = @ptrCast(*anyopaque, &e.allocator),
         .alloc = FreeTypeMemImpl.allocFunc,
         .free = FreeTypeMemImpl.freeFunc,
         .realloc = FreeTypeMemImpl.reallocFunc,
@@ -798,6 +808,7 @@ fn EngineImpl(comptime Self: type, comptime RectImpl: type, comptime ImgImpl: ty
 
     /// clear clears the current framebuffer to be of the given color.
     pub fn clear(e: *Self, color: [4]u8) void {
+      _ = e;
       gl.clearColor(@intToFloat(f32, color[0])/255.0, @intToFloat(f32, color[1])/255.0,
           @intToFloat(f32, color[2])/255.0, @intToFloat(f32, color[3])/255.0);
       gl.clear(.{.color = true});
@@ -832,7 +843,7 @@ fn EngineImpl(comptime Self: type, comptime RectImpl: type, comptime ImgImpl: ty
         gl.bindVertexArray(e.vao);
       }
       gl.useProgram(e.rect_proc.p);
-      gl.vertexAttribPointer(e.rect_proc.position, 2, gl.Type.float, false, 2*@sizeOf(f32), null);
+      gl.vertexAttribPointer(e.rect_proc.position, 2, gl.Type.float, false, 2*@sizeOf(f32), 0);
       gl.enableVertexAttribArray(e.rect_proc.position);
 
       const it = toInternalCoords(e, t, false);
@@ -862,7 +873,7 @@ fn EngineImpl(comptime Self: type, comptime RectImpl: type, comptime ImgImpl: ty
         gl.bindVertexArray(e.vao);
       }
       gl.useProgram(e.blend_proc.p);
-      gl.vertexAttribPointer(e.blend_proc.position, 2, gl.Type.float, false, 2*@sizeOf(f32), null);
+      gl.vertexAttribPointer(e.blend_proc.position, 2, gl.Type.float, false, 2*@sizeOf(f32), 0);
       gl.enableVertexAttribArray(e.blend_proc.position);
 
       gl.activeTexture(gl.TextureUnit.texture_0);
@@ -920,7 +931,7 @@ fn EngineImpl(comptime Self: type, comptime RectImpl: type, comptime ImgImpl: ty
       }
       gl.useProgram(e.img_proc.p);
 
-      gl.vertexAttribPointer(e.rect_proc.position, 2, gl.Type.float, false, 2*@sizeOf(f32), null);
+      gl.vertexAttribPointer(e.rect_proc.position, 2, gl.Type.float, false, 2*@sizeOf(f32), 0);
       gl.enableVertexAttribArray(e.rect_proc.position);
 
       gl.activeTexture(gl.TextureUnit.texture_0);
@@ -1022,6 +1033,7 @@ pub const Engine = struct {
   single_value_color: gl.PixelFormat,
   freetype_memory: ft.FT_MemoryRec_,
   freetype_lib: ft.FT_Library,
+  allocator: std.mem.Allocator,
 
   const Impl = EngineImpl(@This(), Rectangle, Image);
 
